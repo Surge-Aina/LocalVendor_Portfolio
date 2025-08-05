@@ -7,6 +7,9 @@
   height: 80px !important;
   object-fit: cover;
 }
+html {
+  scroll-behavior: smooth;
+}
 
 .clip-blob {
   clip-path: path(

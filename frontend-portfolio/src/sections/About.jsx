@@ -86,7 +86,7 @@ const AboutSection = () => {
   };
 
   return (
-    <section className="max-w-6xl mx-auto p-8">
+    <section id="about" className="max-w-6xl mx-auto p-8">
       <div className="grid md:grid-cols-2 gap-8 mb-10">
         {/* Left Container */}
         <div className="bg-white shadow p-6 rounded">

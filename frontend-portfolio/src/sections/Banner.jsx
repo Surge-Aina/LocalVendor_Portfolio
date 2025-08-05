@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
+import { FiEdit } from "react-icons/fi";
 import { isAdminLoggedIn } from "../services/auth";
 
 const Banner = () => {
   const [banner, setBanner] = useState(null);
   const [image, setImage] = useState(null);
   const [text, setText] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState(null);
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -28,12 +32,14 @@ const Banner = () => {
       .catch((err) => console.error("Fetch error:", err));
   }, []);
 
-  const handleSubmit = () => {
+  const handleSave = () => {
     const payload = new FormData();
-    if (image) payload.append("image", image);
-    payload.append("title", formData.title);
-    payload.append("description", formData.description);
-    payload.append("shape", formData.shape);
+    payload.append("title", editData.title);
+    payload.append("description", editData.description);
+    payload.append("shape", editData.shape);
+    if (editData.image) {
+      payload.append("image", editData.image);
+    }
 
     const endpoint = banner?._id ? `/banner/${banner._id}` : "/banner";
 
@@ -48,13 +54,15 @@ const Banner = () => {
     request
       .then((res) => {
         setBanner(res.data);
+        setEditing(false);
+        setEditData(null);
         alert("Banner updated!");
       })
       .catch((err) => console.error("Save error:", err));
   };
 
   return (
-    <section className="min-h-screen relative">
+    <section id="home" className="min-h-screen relative">
       {banner?.image && (
         <div
           className={`relative w-full ${
@@ -79,64 +87,84 @@ const Banner = () => {
           />
 
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-4 text-center">
-            <h1 className="text-6xl md:text-8xl font-extrabold uppercase drop-shadow-lg mb-4">
-              {banner.title}
-            </h1>
-            <p className="text-lg md:text-2xl max-w-2xl drop-shadow-md">
-              {banner.description}
-            </p>
+            {editing ? (
+              <>
+                <input
+                  className="text-4xl md:text-6xl font-bold bg-white/80 text-black px-2 rounded mb-2"
+                  value={editData.title}
+                  onChange={(e) =>
+                    setEditData({ ...editData, title: e.target.value })
+                  }
+                />
+                <input
+                  className="text-lg bg-white/80 text-black px-2 rounded mb-2"
+                  value={editData.description}
+                  onChange={(e) =>
+                    setEditData({ ...editData, description: e.target.value })
+                  }
+                />
+                <select
+                  className="bg-white/80 text-black px-2 rounded mb-2"
+                  value={editData.shape}
+                  onChange={(e) =>
+                    setEditData({ ...editData, shape: e.target.value })
+                  }
+                >
+                  <option value="blob">Blob</option>
+                  <option value="oval">Oval</option>
+                  <option value="square">Square</option>
+                  <option value="fullscreen">Fullscreen</option>
+                </select>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setEditData({ ...editData, image: e.target.files[0] })
+                  }
+                  className="text-white"
+                />
+                <div className="mt-2 space-x-2">
+                  <button
+                    className="bg-blue-600 text-white px-4 py-1 rounded"
+                    onClick={handleSave}
+                  >
+                    Save
+                  </button>
+                  <button
+                    className="text-white underline"
+                    onClick={() => {
+                      setEditing(false);
+                      setEditData(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className="text-6xl md:text-8xl font-extrabold uppercase drop-shadow-lg mb-4">
+                  {banner.title}
+                </h1>
+                <p className="text-lg md:text-2xl max-w-2xl drop-shadow-md">
+                  {banner.description}
+                </p>
+
+                {isAdminLoggedIn() && !editing && (
+                  <button
+                    onClick={() => {
+                      setEditing(true);
+                      setEditData({ ...banner });
+                    }}
+                    className="absolute top-4 right-4 bg-white/90 hover:bg-white text-black p-2 rounded-full shadow transition"
+                    title="Edit Banner"
+                  >
+                    <FiEdit className="text-xl" />
+                  </button>
+                )}
+              </>
+            )}
           </div>
-        </div>
-      )}
-
-      {isAdminLoggedIn() && (
-        <div className="mt-8 space-y-4 max-w-md mx-auto">
-          <input
-            type="text"
-            value={formData.title}
-            onChange={(e) =>
-              setFormData({ ...formData, title: e.target.value })
-            }
-            placeholder="Enter banner title"
-            className="w-full border p-2 rounded"
-          />
-
-          <input
-            type="text"
-            value={formData.description}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
-            placeholder="Enter banner description"
-            className="w-full border p-2 rounded"
-          />
-
-          <select
-            value={formData.shape}
-            onChange={(e) =>
-              setFormData({ ...formData, shape: e.target.value })
-            }
-            className="w-full border p-2 rounded"
-          >
-            <option value="blob">Blob</option>
-            <option value="oval">Oval</option>
-            <option value="square">Square</option>
-            <option value="fullscreen">Fullscreen</option>
-          </select>
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImage(e.target.files[0])}
-            className="w-full"
-          />
-
-          <button
-            onClick={handleSubmit}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            {banner ? "Update Banner" : "Add Banner"}
-          </button>
         </div>
       )}
     </section>

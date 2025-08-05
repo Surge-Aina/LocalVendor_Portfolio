@@ -8,31 +8,48 @@ const Menu = () => {
     name: "",
     description: "",
     price: "",
+    category: "",
     image: null,
   });
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [allCategories, setAllCategories] = useState(["All"]);
 
   useEffect(() => {
-    fetchMenu();
-  }, []);
-
-  const fetchMenu = () => {
+    // Fetch all categories (from full unfiltered dataset)
     API.get("/menu")
-      .then((res) => setMenuItems(res.data))
-      .catch((err) => console.error("Error fetching menu:", err));
-  };
-  // adding categories for menu filters
-  const categories = [
-    "All",
-    ...new Set(menuItems.map((item) => item.category)),
-  ];
+      .then((res) => {
+        const allCats = [
+          "All",
+          ...Array.from(
+            new Set(
+              res.data
+                .map((item) => item.category)
+                .filter((cat) => cat && cat.trim() !== "")
+            )
+          ),
+        ];
+        setAllCategories(allCats);
+      })
+      .catch((err) => console.error("Error fetching categories:", err));
+    const url =
+      activeCategory && activeCategory !== "All"
+        ? `/menu?category=${activeCategory}`
+        : "/menu";
 
-  const filteredItems =
-    activeCategory === "All"
-      ? menuItems
-      : menuItems.filter((item) => item.category === activeCategory);
+    API.get(url)
+      .then((res) => {
+        console.log("Menu items response:", res.data);
+        setMenuItems(res.data);
+      })
+      .catch((err) => console.error("Error fetching menu:", err));
+  }, [activeCategory]);
+
+  // const filteredItems =
+  //   activeCategory === "All"
+  //     ? menuItems
+  //     : menuItems.filter((item) => item.category === activeCategory);
 
   const handleSubmit = () => {
     const formPayload = new FormData();
@@ -89,7 +106,7 @@ const Menu = () => {
   };
 
   return (
-    <section className="py-10 px-6 max-w-6xl mx-auto">
+    <section id="menu" className="py-10 px-6 max-w-6xl mx-auto">
       <h2 className="text-2xl font-bold mb-4 text-center">Menu</h2>
 
       {/* Add Button */}
@@ -116,7 +133,7 @@ const Menu = () => {
 
       {/* Filter Buttons */}
       <div className="flex flex-wrap justify-center gap-3 mb-6">
-        {categories.map((cat) => (
+        {allCategories.map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}

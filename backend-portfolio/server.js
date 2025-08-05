@@ -10,6 +10,7 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const userRoutes = require("./routes/userRoute");
 const path = require("path");
+const taggedImageRoutes = require("./routes/taggedImageRoutes");
 const seedAbout = require("./models/seedAbout");
 
 // Load env vars
@@ -40,6 +41,7 @@ app.use("/api/gallery", galleryRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/tagged", taggedImageRoutes);
 app.use("/api/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Connect DB and start server

@@ -1,12 +1,28 @@
 const MenuItem = require("../models/MenuItems");
 
 // @desc Fetch all menu items
+// @desc Fetch all menu items or filter by category
 exports.getMenuItems = async (req, res) => {
   try {
-    const items = await MenuItem.find();
+    const { category } = req.query;
+
+    const filter = category && category !== "All" ? { category } : {};
+    const items = await MenuItem.find(filter);
+
     res.json(items);
   } catch (err) {
+    console.error("Error fetching menu items:", err);
     res.status(500).json({ error: "Server error fetching menu items" });
+  }
+};
+
+exports.getUniqueCategories = async (req, res) => {
+  try {
+    const categories = await MenuItem.distinct("category");
+    res.json(["All", ...categories]);
+  } catch (err) {
+    console.error("Failed to fetch categories:", err);
+    res.status(500).json({ error: "Failed to get categories" });
   }
 };
 

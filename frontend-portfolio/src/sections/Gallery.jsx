@@ -78,7 +78,7 @@ const Gallery = () => {
   );
 
   return (
-    <section className="py-12 px-6 max-w-4xl mx-auto">
+    <section id="gallery" className="py-12 px-6 max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold mb-6 text-center">Gallery</h2>
 
       {isAdminLoggedIn() && (
