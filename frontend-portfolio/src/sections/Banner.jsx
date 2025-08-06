@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import API from "../services/api";
 import { FiEdit } from "react-icons/fi";
 import { isAdminLoggedIn } from "../services/auth";
+import FileUploader from "../components/FileUploader";
+import { toast } from "react-toastify";
 
 const Banner = () => {
   const [banner, setBanner] = useState(null);
@@ -37,6 +39,10 @@ const Banner = () => {
     payload.append("title", editData.title);
     payload.append("description", editData.description);
     payload.append("shape", editData.shape);
+    if (!editData.image || !(editData.image instanceof File)) {
+      toast.error("Please upload a valid image under 2MB");
+      return;
+    }
     if (editData.image) {
       payload.append("image", editData.image);
     }
@@ -115,14 +121,13 @@ const Banner = () => {
                   <option value="square">Square</option>
                   <option value="fullscreen">Fullscreen</option>
                 </select>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setEditData({ ...editData, image: e.target.files[0] })
+                <FileUploader
+                  onFileAccepted={(file) =>
+                    setEditData({ ...editData, image: file })
                   }
                   className="text-white"
                 />
+
                 <div className="mt-2 space-x-2">
                   <button
                     className="bg-blue-600 text-white px-4 py-1 rounded"

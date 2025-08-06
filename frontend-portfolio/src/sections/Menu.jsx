@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
 import { isAdminLoggedIn } from "../services/auth";
+import FileUploader from "../components/FileUploader";
+import { toast } from "react-toastify";
 
 const Menu = () => {
   const [menuItems, setMenuItems] = useState([]);
@@ -17,7 +19,7 @@ const Menu = () => {
   const [allCategories, setAllCategories] = useState(["All"]);
 
   useEffect(() => {
-    // Fetch all categories (from full unfiltered dataset)
+    // Fetch categories
     API.get("/menu")
       .then((res) => {
         const allCats = [
@@ -33,6 +35,12 @@ const Menu = () => {
         setAllCategories(allCats);
       })
       .catch((err) => console.error("Error fetching categories:", err));
+
+    // Fetch filtered menu
+    fetchMenu();
+  }, [activeCategory]);
+
+  const fetchMenu = () => {
     const url =
       activeCategory && activeCategory !== "All"
         ? `/menu?category=${activeCategory}`
@@ -44,22 +52,22 @@ const Menu = () => {
         setMenuItems(res.data);
       })
       .catch((err) => console.error("Error fetching menu:", err));
-  }, [activeCategory]);
-
-  // const filteredItems =
-  //   activeCategory === "All"
-  //     ? menuItems
-  //     : menuItems.filter((item) => item.category === activeCategory);
+  };
 
   const handleSubmit = () => {
+    if (!formData.image || !(formData.image instanceof File)) {
+      toast.error("Please upload a valid image under 2MB");
+      return;
+    }
+
     const formPayload = new FormData();
     formPayload.append("name", formData.name);
     formPayload.append("description", formData.description);
     formPayload.append("price", formData.price);
     formPayload.append("category", formData.category);
     if (formData.image) formPayload.append("image", formData.image);
-    console.log("ENV BASE URL:", import.meta.env.VITE_API_BASE_URL);
-    console.log("Submitting FormData:", [...formPayload.entries()]);
+    // console.log("ENV BASE URL:", import.meta.env.VITE_API_BASE_URL);
+    // console.log("Submitting FormData:", [...formPayload.entries()]);
 
     const request = editingId
       ? API.put(`/menu/${editingId}`, formPayload, {
@@ -185,14 +193,11 @@ const Menu = () => {
             }
             className="w-full border p-2 rounded"
           />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              setFormData({ ...formData, image: e.target.files[0] })
-            }
+          <FileUploader
+            onFileAccepted={(file) => setFormData({ ...formData, image: file })}
             className="w-full border p-2 rounded"
           />
+
           <div className="flex justify-between">
             <button
               onClick={handleSubmit}

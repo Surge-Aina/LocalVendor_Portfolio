@@ -4,6 +4,9 @@ const MenuItem = require("../models/MenuItems");
 // Upload a new image
 exports.uploadImage = async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
     const newImage = new TaggedImage({
       imageUrl: `/uploads/${req.file.filename}`,
       tags: [],

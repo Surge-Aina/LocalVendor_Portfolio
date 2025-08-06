@@ -3,6 +3,8 @@ import ImageGallery from "react-image-gallery";
 import "react-image-gallery/styles/css/image-gallery.css";
 import API from "../services/api";
 import { isAdminLoggedIn } from "../services/auth";
+import FileUploader from "../components/FileUploader";
+import { toast } from "react-toastify";
 
 const Gallery = () => {
   const [images, setImages] = useState([]);
@@ -21,6 +23,10 @@ const Gallery = () => {
   };
 
   const handleSubmit = () => {
+    if (!formData.image || !(formData.image instanceof File)) {
+      toast.error("Please upload a valid image under 2MB");
+      return;
+    }
     const payload = new FormData();
     if (formData.image) payload.append("image", formData.image);
     payload.append("caption", formData.caption);
@@ -98,23 +104,11 @@ const Gallery = () => {
 
       {isAdminLoggedIn() && showForm && (
         <div className="mb-6 space-y-4">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              setFormData({ ...formData, image: e.target.files[0] })
-            }
+          <FileUploader
+            onFileAccepted={(file) => setFormData({ ...formData, image: file })}
             className="w-full border p-2"
           />
-          <input
-            type="text"
-            placeholder="Caption (optional)"
-            value={formData.caption}
-            onChange={(e) =>
-              setFormData({ ...formData, caption: e.target.value })
-            }
-            className="w-full border p-2"
-          />
+
           <div>
             <button
               onClick={handleSubmit}

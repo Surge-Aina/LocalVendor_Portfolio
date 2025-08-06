@@ -1,7 +1,7 @@
-// src/sections/TaggedImage.jsx
 import { useState, useEffect } from "react";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
-import API from "../services/api"; // adjust path if needed
+import API from "../services/api";
+import FileUploader from "../components/FileUploader";
 
 const TaggedImage = () => {
   const [imageFile, setImageFile] = useState(null);
@@ -43,13 +43,20 @@ const TaggedImage = () => {
   // Upload image handler
   const handleUpload = async (e) => {
     e.preventDefault();
+    if (!imageFile) return;
+
     const formData = new FormData();
     formData.append("image", imageFile);
 
-    const res = await API.post("/tagged/upload", formData);
-    setImageUrl(res.data.imageUrl);
-    setTaggedImageId(res.data._id);
-    setTags([]);
+    try {
+      const res = await API.post("/tagged/upload", formData);
+      setImageUrl(res.data.imageUrl);
+      setTaggedImageId(res.data._id);
+      setTags([]);
+    } catch (err) {
+      console.error("Upload failed", err);
+      toast.error(err.response?.data?.error || "Upload failed");
+    }
   };
 
   const handleEditTag = (index, tag) => {
@@ -125,11 +132,13 @@ const TaggedImage = () => {
       <h2 className="text-xl font-bold mb-4">Tagged Image Uploader</h2>
 
       <form onSubmit={handleUpload} className="mb-6 flex gap-4 items-center">
-        <input
+        {/* <input
           type="file"
           accept="image/*"
           onChange={(e) => setImageFile(e.target.files[0])}
-        />
+        /> */}
+        <FileUploader onFileAccepted={(file) => setImageFile(file)} />
+
         <button
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded"
@@ -157,7 +166,7 @@ const TaggedImage = () => {
             >
               <div className="font-semibold">{tag.label}</div>
               <div className="flex justify-center gap-2 mt-1">
-                <button
+                {/* <button
                   onClick={() =>
                     setModalData({
                       tagIndex: idx,
@@ -171,7 +180,7 @@ const TaggedImage = () => {
                   title="Edit Tag"
                 >
                   <FiEdit size={14} />
-                </button>
+                </button> */}
 
                 <button
                   onClick={(e) => {
