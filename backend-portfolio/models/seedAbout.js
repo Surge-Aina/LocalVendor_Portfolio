@@ -1,26 +1,21 @@
-// seedAbout.js
-const AboutContent = require(".//About");
+// models/seedAbout.js
+const About = require("./About");
 
-const seedAbout = async () => {
-  const existing = await AboutContent.findOne();
-  if (existing) return;
+module.exports = async function seedAbout() {
+  // If an About doc exists, do nothing
+  const exists = await About.findOne({});
+  if (exists) return;
 
-  const defaultAbout = new AboutContent({
+  await About.create({
     banner: {
-      title: "Welcome to Donut Nook",
-      description: "Delicious donuts, warm coffee, and cozy vibes.",
-      shape: "rectangle", // or your default
-      image: "", // or preload a static image if needed
+      title: "About Us",
+      description: "Welcome to our story.",
+      shape: "fullscreen",
+      image: "", // can be filled later via admin
     },
-    contentBlocks: [
-      { heading: "Our Story", subheading: "Handcrafted since 1999" },
-      { heading: "Community", subheading: "Serving with love every day" },
-    ],
+    contentBlocks: [],
     gridImages: [],
   });
 
-  await defaultAbout.save();
-  console.log("✅ Default About section seeded.");
+  console.log("Seeded initial About document");
 };
-
-module.exports = seedAbout;

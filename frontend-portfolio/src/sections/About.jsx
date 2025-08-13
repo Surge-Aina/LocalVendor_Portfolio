@@ -1,33 +1,54 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import API from "../services/api";
+import FileUploader from "../components/FileUploader";
 import { isAdminLoggedIn } from "../services/auth";
+
+const MAX_IMAGES = 4;
+
+// stable id for React keys when Mongo _id is absent
+const genId = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random()}`;
 
 const AboutSection = () => {
   const [leftBlocks, setLeftBlocks] = useState([]);
   const [rightBlocks, setRightBlocks] = useState([]);
   const [bottomImages, setBottomImages] = useState([]);
+  const dragIndexRef = useRef(null);
 
   useEffect(() => {
     API.get("/about")
       .then((res) => {
-        let data = res.data;
+        const data = res.data || {};
         const blocks = data.contentBlocks || [];
         const midpoint = Math.ceil(blocks.length / 2);
-        setLeftBlocks(
-          blocks.slice(0, midpoint).map((b) => ({ ...b, isEditing: false }))
-        );
-        setRightBlocks(
-          blocks.slice(midpoint).map((b) => ({ ...b, isEditing: false }))
-        );
-        setBottomImages(data.gridImages || []);
+
+        const withIds = (arr) =>
+          arr.map((b) => ({
+            ...b,
+            isEditing: false,
+            clientId: b._id || b.clientId || genId(),
+          }));
+
+        setLeftBlocks(withIds(blocks.slice(0, midpoint)));
+        setRightBlocks(withIds(blocks.slice(midpoint)));
+        setBottomImages((data.gridImages || []).slice(0, MAX_IMAGES));
       })
       .catch((err) =>
         console.error("Failed to fetch or create about data", err)
       );
   }, []);
 
+  // ----- text blocks -----
   const handleAddTextBlock = (side) => {
-    const newBlock = { heading: "", subheading: "", isEditing: true };
+    const newBlock = {
+      heading: "",
+      subheading: "",
+      isEditing: true,
+      clientId: genId(),
+    };
     const updated =
       side === "left" ? [...leftBlocks, newBlock] : [...rightBlocks, newBlock];
     saveBlocks(side, updated);
@@ -58,73 +79,100 @@ const AboutSection = () => {
         : [...leftBlocks, ...updatedBlocks];
 
     API.put("/about", {
-      contentBlocks: mergedBlocks.map(({ isEditing, ...b }) => b),
+      // strip UI-only fields before saving
+      contentBlocks: mergedBlocks.map(({ isEditing, clientId, ...b }) => b),
       gridImages: bottomImages,
     })
-      .then((res) => {
-        const data = res.data || { contentBlocks: [], gridImages: [] };
+      .then(() => {
         side === "left"
           ? setLeftBlocks(updatedBlocks)
           : setRightBlocks(updatedBlocks);
       })
-
       .catch((err) => console.error("Failed to save content blocks", err));
   };
 
-  const handleAddImage = (e) => {
-    const files = Array.from(e.target.files);
-    const payload = new FormData();
-    files.forEach((file) => payload.append("images", file));
+  // ----- drag & drop reorder -----
+  const onDragStart = (side, index) => (dragIndexRef.current = { side, index });
+  const onDragOver = (e) => e.preventDefault();
+  const onDrop = (side, index) => {
+    const start = dragIndexRef.current;
+    if (!start || start.side !== side) return;
+    const list = side === "left" ? [...leftBlocks] : [...rightBlocks];
+    const [moved] = list.splice(start.index, 1);
+    list.splice(index, 0, moved);
+    saveBlocks(side, list);
+    dragIndexRef.current = null;
+  };
 
-    API.post("/about/upload-grid-images", payload, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
-      .then((res) => {
-        setBottomImages([...bottomImages, ...res.data.urls]);
-      })
-      .catch((err) => console.error("Failed to upload images", err));
+  // ----- images -----
+  const handleAddImage = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const remaining = Math.max(0, MAX_IMAGES - bottomImages.length);
+    const toUpload = files.slice(0, remaining);
+    if (!toUpload.length) {
+      e.target.value = "";
+      return;
+    }
+
+    const payload = new FormData();
+    toUpload.forEach((file) => payload.append("images", file));
+
+    try {
+      const res = await API.post("/about/upload-grid-images", payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const uploaded = (res.data?.urls || []).slice(0, remaining);
+      const newImages = [...bottomImages, ...uploaded].slice(0, MAX_IMAGES);
+      setBottomImages(newImages);
+      await API.put("/about", { gridImages: newImages });
+    } catch (err) {
+      console.error("Failed to upload/persist images", err);
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const handleDeleteImage = async (src) => {
+    if (!window.confirm("Remove this image from the About gallery?")) return;
+    const newImages = bottomImages.filter((u) => u !== src);
+    setBottomImages(newImages);
+    try {
+      await API.put("/about", { gridImages: newImages });
+    } catch (err) {
+      console.error("Failed to persist image removal", err);
+    }
   };
 
   return (
-    <section id="about" className="max-w-6xl mx-auto p-8">
-      <div className="grid md:grid-cols-2 gap-8 mb-10">
-        {/* Left Container */}
-        <div className="bg-white shadow p-6 rounded">
+    <section
+      id="about"
+      className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10"
+    >
+      {/* Two-column content */}
+      <div className="grid md:grid-cols-2 gap-6 lg:gap-8 mb-10">
+        {/* Column A */}
+        <motion.div
+          className="relative rounded-2xl bg-white p-6 shadow-sm"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
           {leftBlocks.map((block, idx) => (
-            <div key={idx} className=" p-4 mb-4 rounded">
-              {block.isEditing ? (
-                <>
-                  <input
-                    type="text"
-                    value={block.heading}
-                    onChange={(e) =>
-                      handleChange("left", idx, "heading", e.target.value)
-                    }
-                    placeholder="Heading"
-                    className=" p-2 w-full mb-2 rounded"
-                  />
-                  <textarea
-                    value={block.subheading}
-                    onChange={(e) =>
-                      handleChange("left", idx, "subheading", e.target.value)
-                    }
-                    placeholder="Subheading"
-                    className=" p-2 w-full mb-2 rounded"
-                  />
-                </>
-              ) : (
-                <>
-                  <h4 className="font-semibold text-blue-900">
-                    {block.heading}
-                  </h4>
-                  <p className="text-gray-700">{block.subheading}</p>
-                </>
-              )}
+            <div
+              key={block._id || block.clientId}
+              className="group relative p-4 mb-4 rounded-xl bg-slate-50/60"
+              draggable={isAdminLoggedIn()}
+              onDragStart={() => onDragStart("left", idx)}
+              onDragOver={onDragOver}
+              onDrop={() => onDrop("left", idx)}
+            >
               {isAdminLoggedIn() && (
-                <div className="flex gap-4 text-sm mt-2">
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition flex gap-3 text-sm">
                   <button
                     onClick={() => handleEditToggle("left", idx)}
-                    className="text-blue-600 hover:underline"
+                    className="text-blue-700 hover:underline"
                   >
                     {block.isEditing ? "Save" : "Edit"}
                   </button>
@@ -136,55 +184,73 @@ const AboutSection = () => {
                   </button>
                 </div>
               )}
-            </div>
-          ))}
-          {isAdminLoggedIn() && (
-            <button
-              onClick={() => handleAddTextBlock("left")}
-              className="bg-green-600 text-white px-4 py-2 rounded"
-            >
-              + Add Left Block
-            </button>
-          )}
-        </div>
 
-        {/* Right Container */}
-        <div className="bg-white shadow p-6 rounded">
-          {rightBlocks.map((block, idx) => (
-            <div key={idx} className=" p-4 mb-4 rounded">
               {block.isEditing ? (
                 <>
                   <input
                     type="text"
                     value={block.heading}
                     onChange={(e) =>
-                      handleChange("right", idx, "heading", e.target.value)
+                      handleChange("left", idx, "heading", e.target.value)
                     }
                     placeholder="Heading"
-                    className=" p-2 w-full mb-2 rounded"
+                    className="p-2 w-full mb-2 rounded-lg bg-white shadow-inner outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   <textarea
                     value={block.subheading}
                     onChange={(e) =>
-                      handleChange("right", idx, "subheading", e.target.value)
+                      handleChange("left", idx, "subheading", e.target.value)
                     }
                     placeholder="Subheading"
-                    className=" p-2 w-full mb-2 rounded"
+                    className="p-2 w-full mb-2 rounded-lg bg-white shadow-inner outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </>
               ) : (
                 <>
-                  <h4 className="font-semibold text-blue-900">
-                    {block.heading}
-                  </h4>
-                  <p className="text-gray-700">{block.subheading}</p>
+                  {block.heading && (
+                    <h4 className="text-lg font-semibold text-slate-900">
+                      {block.heading}
+                    </h4>
+                  )}
+                  <p className="text-slate-700 whitespace-pre-line leading-7 max-w-prose">
+                    {block.subheading}
+                  </p>
                 </>
               )}
+            </div>
+          ))}
+
+          {isAdminLoggedIn() && (
+            <button
+              className="mt-2 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow hover:brightness-105 transition"
+              onClick={() => handleAddTextBlock("left")}
+            >
+              + Add Block
+            </button>
+          )}
+        </motion.div>
+
+        {/* Column B */}
+        <motion.div
+          className="relative rounded-2xl bg-white p-6 shadow-sm"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.05 }}
+        >
+          {rightBlocks.map((block, idx) => (
+            <div
+              key={block._id || block.clientId}
+              className="group relative p-4 mb-4 rounded-xl bg-slate-50/60"
+              draggable={isAdminLoggedIn()}
+              onDragStart={() => onDragStart("right", idx)}
+              onDragOver={onDragOver}
+              onDrop={() => onDrop("right", idx)}
+            >
               {isAdminLoggedIn() && (
-                <div className="flex gap-4 text-sm mt-2">
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition flex gap-3 text-sm">
                   <button
                     onClick={() => handleEditToggle("right", idx)}
-                    className="text-blue-600 hover:underline"
+                    className="text-blue-700 hover:underline"
                   >
                     {block.isEditing ? "Save" : "Edit"}
                   </button>
@@ -196,40 +262,99 @@ const AboutSection = () => {
                   </button>
                 </div>
               )}
+
+              {block.isEditing ? (
+                <>
+                  <input
+                    type="text"
+                    value={block.heading}
+                    onChange={(e) =>
+                      handleChange("right", idx, "heading", e.target.value)
+                    }
+                    placeholder="Heading"
+                    className="p-2 w-full mb-2 rounded-lg bg-white shadow-inner outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <textarea
+                    value={block.subheading}
+                    onChange={(e) =>
+                      handleChange("right", idx, "subheading", e.target.value)
+                    }
+                    placeholder="Subheading"
+                    className="p-2 w-full mb-2 rounded-lg bg-white shadow-inner outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </>
+              ) : (
+                <>
+                  {block.heading && (
+                    <h4 className="text-lg font-semibold text-slate-900">
+                      {block.heading}
+                    </h4>
+                  )}
+                  <p className="text-slate-700 whitespace-pre-line leading-7 max-w-prose">
+                    {block.subheading}
+                  </p>
+                </>
+              )}
             </div>
           ))}
+
           {isAdminLoggedIn() && (
             <button
+              className="mt-2 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow hover:brightness-105 transition"
               onClick={() => handleAddTextBlock("right")}
-              className="bg-green-600 text-white px-4 py-2 rounded"
             >
-              + Add Right Block
+              + Add Block
             </button>
           )}
-        </div>
+        </motion.div>
       </div>
 
-      <div className="mt-10 bg-white p-6 rounded shadow">
-        <h3 className="text-2xl font-semibold mb-4">Bottom Grid</h3>
-
+      {/* Bottom images — NO visible container/card */}
+      <motion.div
+        className="mt-10"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, delay: 0.1 }}
+      >
         {isAdminLoggedIn() && (
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleAddImage}
-            className="mb-4"
-          />
+          <div className="mb-4 flex items-center justify-between">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleAddImage}
+              disabled={bottomImages.length >= MAX_IMAGES}
+              className="disabled:opacity-50"
+            />
+            <span className="text-sm text-slate-500">
+              {bottomImages.length}/{MAX_IMAGES}
+            </span>
+          </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-          {bottomImages.map((img, idx) => (
-            <div key={idx} className="relative w-full aspect-square">
-              <img src={img} className="w-full h-full object-cover" />
+        {/* Pinterest-y, no per-image box */}
+        <div className="columns-1 sm:columns-2 gap-4 [column-fill:_balance]">
+          {bottomImages.map((src) => (
+            <div key={src} className="relative mb-4 break-inside-avoid">
+              <img
+                src={src}
+                alt=""
+                loading="lazy"
+                className="block w-full h-auto max-h-[65vh] md:max-h-[490px] lg:max-h-[500px] rounded-2xl object-cover"
+              />
+              {isAdminLoggedIn() && (
+                <button
+                  onClick={() => handleDeleteImage(src)}
+                  className="absolute top-2 right-2 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white/80 backdrop-blur hover:bg-white shadow transition"
+                  title="Remove image"
+                >
+                  Delete
+                </button>
+              )}
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 };

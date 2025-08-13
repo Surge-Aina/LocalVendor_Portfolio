@@ -70,3 +70,12 @@ button:hover {
   transform: translateY(2px);
   box-shadow: 1px 1px 0px rgba(43, 39, 36, 0.6);
 }
+
+/* optional: neutralize any global image/card borders */
+img {
+  border: 0;
+}
+.card,
+.tile {
+  border: 0;
+}

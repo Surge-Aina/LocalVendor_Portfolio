@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
 import API from "../services/api";
+import { toast } from "react-toastify";
 import FileUploader from "../components/FileUploader";
 
 const TaggedImage = () => {
@@ -43,7 +44,15 @@ const TaggedImage = () => {
   // Upload image handler
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!imageFile) return;
+    if (imageFile instanceof File) {
+      if (imageFile.size > 2 * 1024 * 1024) {
+        toast.error("Please upload a valid image under 2MB");
+        return;
+      }
+    } else {
+      toast.error("Please select an image to upload.");
+      return;
+    }
 
     const formData = new FormData();
     formData.append("image", imageFile);
@@ -53,22 +62,23 @@ const TaggedImage = () => {
       setImageUrl(res.data.imageUrl);
       setTaggedImageId(res.data._id);
       setTags([]);
+      toast.success("Image uploaded successfully!");
     } catch (err) {
-      console.error("Upload failed", err);
+      //   console.error("Upload failed", err);
       toast.error(err.response?.data?.error || "Upload failed");
     }
   };
 
-  const handleEditTag = (index, tag) => {
-    console.log("Editing tag at index:", index);
-    setModalData({
-      tagIndex: index,
-      x: tag.x,
-      y: tag.y,
-      label: tag.label || "",
-      menuItemId: tag.menuItem?._id || tag.menuItem || "",
-    });
-  };
+  //   const handleEditTag = (index, tag) => {
+  //     console.log("Editing tag at index:", index);
+  //     setModalData({
+  //       tagIndex: index,
+  //       x: tag.x,
+  //       y: tag.y,
+  //       label: tag.label || "",
+  //       menuItemId: tag.menuItem?._id || tag.menuItem || "",
+  //     });
+  //   };
 
   // Image click to tag
   const handleTagClick = (e) => {

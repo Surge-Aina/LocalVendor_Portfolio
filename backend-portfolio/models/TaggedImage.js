@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
 const TagSchema = new mongoose.Schema({
-  x: Number, // relative X (0 to 1)
-  y: Number, // relative Y (0 to 1)
+  x: Number,
+  y: Number,
   menuItem: { type: mongoose.Schema.Types.ObjectId, ref: "MenuItems" },
   label: String,
 });

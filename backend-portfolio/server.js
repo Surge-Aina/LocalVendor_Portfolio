@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const menuRoutes = require("./routes/menuRoutes");
 const bannerRoutes = require("./routes/bannerRoutes");
-const aboutRoutes = require("./routes/aboutRoutes");
+// const aboutRoutes = require("./routes/aboutRoutes");
 const galleryRoutes = require("./routes/galleryRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const contactRoutes = require("./routes/contactRoutes");
@@ -13,14 +13,30 @@ const path = require("path");
 const taggedImageRoutes = require("./routes/taggedImageRoutes");
 const seedAbout = require("./models/seedAbout");
 
+//about route with seeding info only when info doesn't exist
+// models/seedAbout.js (suggested)
+const aboutRoutes = require("./routes/aboutRoutes");
+// const About = require("./About");
+// module.exports = async function seedAbout() {
+//   const exists = await About.findOne({});
+//   if (exists) return; // do nothing
+//   await About.create({
+//     banner: {
+//       title: "About Us",
+//       description: "…",
+//       shape: "fullscreen",
+//       image: "",
+//     },
+//     contentBlocks: [],
+//     gridImages: [],
+//   });
+// };
+
 // Load env vars
 dotenv.config();
 
 // Import DB connection
 const connectDB = require("./config/db");
-
-// Import routes (will add as we build)
-// const menuRoutes = require('./routes/menuRoutes');
 
 // Initialize Express app
 const app = express();
@@ -53,9 +69,5 @@ connectDB().then(async () => {
   );
 });
 
-console.log(`🔧 Environment PORT: ${process.env.PORT}`);
-console.log(`🔧 Using PORT: ${PORT}`);
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Backend running on port ${PORT}`);
-  console.log(`Server accessible at: http://localhost:${PORT}`);
-});
+// console.log(`🔧 Environment PORT: ${process.env.PORT}`);
+// console.log(`🔧 Using PORT: ${PORT}`);

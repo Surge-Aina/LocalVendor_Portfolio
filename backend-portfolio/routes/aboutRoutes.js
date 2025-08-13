@@ -10,19 +10,21 @@ const {
 } = require("../controllers/aboutController");
 
 router.get("/", getAllAbouts);
+
 router.post(
-  "/about",
+  "/",
   upload.fields([
     { name: "bannerImage", maxCount: 1 },
     { name: "gridImages", maxCount: 6 },
   ]),
   createAbout
 );
+
 router.put(
   "/",
   upload.fields([
     { name: "bannerImage", maxCount: 1 },
-    { name: "gridImages", maxCount: 5 },
+    { name: "gridImages", maxCount: 10 },
   ]),
   updateAbout
 );

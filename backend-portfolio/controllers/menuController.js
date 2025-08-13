@@ -1,7 +1,5 @@
 const MenuItem = require("../models/MenuItems");
 
-// @desc Fetch all menu items
-// @desc Fetch all menu items or filter by category
 exports.getMenuItems = async (req, res) => {
   try {
     const { category } = req.query;
@@ -26,10 +24,10 @@ exports.getUniqueCategories = async (req, res) => {
   }
 };
 
-// @desc Create a new menu item
 exports.createMenuItem = async (req, res) => {
   //console.log("Incoming Form Data:", req.body);
-  const { name, price, category, description } = req.body;
+  const { name, price, category, description, isAvailable, unavailableUntil } =
+    req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : "";
 
   try {
@@ -38,23 +36,28 @@ exports.createMenuItem = async (req, res) => {
       price,
       category,
       description,
+      isAvailable: isAvailable ?? true,
+      unavailableUntil: unavailableUntil || null,
       image,
     });
     await menuItem.save();
     res.status(201).json(menuItem);
   } catch (err) {
+    console.error("Create menu item error:", err);
     res.status(400).json({ error: "Failed to create menu item" });
   }
 };
 
 exports.updateMenuItem = async (req, res) => {
   // const { name, description, category, price } = req.body;
-  const updateData = {
-    name: req.body.name,
-    description: req.body.description,
-    price: req.body.price,
-    category: req.body.category, // <-- include this
-  };
+  // const updateData = {
+  //   name: req.body.name,
+  //   description: req.body.description,
+  //   price: req.body.price,
+  //   category: req.body.category,
+
+  // };
+  const updateData = { ...req.body };
 
   if (req.file) {
     updateData.image = `/uploads/${req.file.filename}`;

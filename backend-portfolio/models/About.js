@@ -6,7 +6,7 @@ const aboutSchema = new mongoose.Schema(
       image: String,
       title: String,
       description: String,
-      shape: { type: String, default: "blob" },
+      shape: { type: String, default: "fullscreen" },
     },
     contentBlocks: [
       {
@@ -14,9 +14,9 @@ const aboutSchema = new mongoose.Schema(
         subheading: String,
       },
     ],
-    gridImages: [String],
+    gridImages: { type: [String], default: [] },
   },
-  { timestamps: true }
+  { timestamps: true, strict: true }
 );
 
 module.exports = mongoose.model("About", aboutSchema);
