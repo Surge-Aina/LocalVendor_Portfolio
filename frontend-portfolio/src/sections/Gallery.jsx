@@ -416,38 +416,39 @@ const Gallery = () => {
 
       {/* Admin list */}
       <ul className="mt-8 space-y-4">
-        {images.map((img) => (
-          <li
-            key={img._id}
-            className="flex items-center justify-between border p-4 rounded"
-          >
-            <div className="flex items-center gap-4">
-              <img
-                src={`${baseUrl}${img.imageUrl}`}
-                alt={img.caption}
-                className="w-20 h-20 object-cover rounded"
-                loading="lazy"
-              />
-              <p>{img.caption}</p>
-            </div>
-            {isAdminLoggedIn() && (
-              <div className="space-x-2">
-                <button
-                  className="bg-yellow-500 text-white px-3 py-1 rounded"
-                  onClick={() => handleEdit(img)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="bg-red-500 text-white px-3 py-1 rounded"
-                  onClick={() => handleDelete(img._id)}
-                >
-                  Delete
-                </button>
+        {isAdminLoggedIn() &&
+          images.map((img) => (
+            <li
+              key={img._id}
+              className="flex items-center justify-between border p-4 rounded"
+            >
+              <div className="flex items-center gap-4">
+                <img
+                  src={`${baseUrl}${img.imageUrl}`}
+                  alt={img.caption}
+                  className="w-20 h-20 object-cover rounded"
+                  loading="lazy"
+                />
+                <p>{img.caption}</p>
               </div>
-            )}
-          </li>
-        ))}
+              {isAdminLoggedIn() && (
+                <div className="space-x-2">
+                  <button
+                    className="bg-yellow-500 text-white px-3 py-1 rounded"
+                    onClick={() => handleEdit(img)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="bg-red-500 text-white px-3 py-1 rounded"
+                    onClick={() => handleDelete(img._id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
       </ul>
     </section>
   );
