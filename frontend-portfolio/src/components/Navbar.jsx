@@ -19,7 +19,10 @@ const Navbar = () => {
 
   return (
     <nav className="w-full bg-white shadow p-4 flex justify-between items-center sticky top-0 z-50">
-      <h1 className="text-xl font-bold">Street Vendor</h1>
+      {/* <h1 className="text-xl font-bold">Street Vendor</h1> */}
+      <a href="/#home" className="text-xl font-bold">
+        Street Vendor
+      </a>
 
       {/* Desktop Menu */}
       <div className="space-x-4 hidden sm:flex">
